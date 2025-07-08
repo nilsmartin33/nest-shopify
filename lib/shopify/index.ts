@@ -24,7 +24,7 @@ import {
   getCollectionQuery,
   getCollectionsQuery
 } from './queries/collection';
-import { getMenuQuery } from './queries/menu';
+import {getMenuAndChildrenQuery, getMenuQuery} from './queries/menu';
 import { getPageQuery, getPagesQuery } from './queries/page';
 import {
   getProductQuery,
@@ -36,7 +36,7 @@ import {
   Collection,
   Connection,
   Image,
-  Menu,
+  Menu, MenuWithChildren,
   Page,
   Product,
   ShopifyAddToCartOperation,
@@ -46,7 +46,7 @@ import {
   ShopifyCollectionOperation,
   ShopifyCollectionProductsOperation,
   ShopifyCollectionsOperation,
-  ShopifyCreateCartOperation,
+  ShopifyCreateCartOperation, ShopifyMenuItem,
   ShopifyMenuOperation,
   ShopifyPageOperation,
   ShopifyPagesOperation,
@@ -363,6 +363,33 @@ export async function getCollections(): Promise<Collection[]> {
   return collections;
 }
 
+const reshapeMenuWithChildren = (menu: ShopifyMenuItem): MenuWithChildren => {
+  return {
+    title: menu.title,
+    path: menu.url
+        .replace(domain, '')
+        .replace('/collections', '/search')
+        .replace('/pages', ''),
+    items: menu.items && menu.items.length > 0
+        ? menu.items.map(reshapeMenuWithChildren)
+        : undefined
+  };
+};
+
+const reshapeMenusWithChildren = (menus: ShopifyMenuItem[]): MenuWithChildren[] => {
+  const reshapedMenus = [];
+
+  for (const menu of menus) {
+    if (menu) {
+      const reshapedMenu = reshapeMenuWithChildren(menu);
+      if (reshapedMenu) {
+        reshapedMenus.push(reshapedMenu);
+      }
+    }
+  }
+  return reshapedMenus;
+};
+
 export async function getMenu(handle: string): Promise<Menu[]> {
   'use cache';
   cacheTag(TAGS.collections);
@@ -384,6 +411,23 @@ export async function getMenu(handle: string): Promise<Menu[]> {
         .replace('/pages', '')
     })) || []
   );
+}
+
+export async function getMenuWithChildren(handle: string): Promise<MenuWithChildren[]> {
+  'use cache';
+  cacheTag(TAGS.collections);
+  cacheLife('days');
+
+  const res = await shopifyFetch<ShopifyMenuOperation>({
+    query: getMenuAndChildrenQuery,
+    variables: {
+      handle
+    }
+  });
+
+  console.log("Query with children", JSON.stringify(res, null, 2));
+
+  return reshapeMenusWithChildren(res.body?.data?.menu?.items || []);
 }
 
 export async function getPage(handle: string): Promise<Page> {

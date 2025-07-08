@@ -8,3 +8,22 @@ export const getMenuQuery = /* GraphQL */ `
     }
   }
 `;
+
+export const getMenuAndChildrenQuery = /* GraphQL */ `
+  query getMenuAndChildren($handle: String!) {
+    menu(handle: $handle) {
+      items {
+        title
+        url
+        items {
+          title
+          url
+          items {
+            title
+            url
+          }
+        }
+      }
+    }
+  }
+`;

@@ -52,6 +52,18 @@ export type Menu = {
   path: string;
 };
 
+export type ShopifyMenuItem = {
+  title: string;
+  url: string;
+  items?: ShopifyMenuItem[];
+};
+
+export type MenuWithChildren = {
+  title: string;
+  path: string;
+  items?: MenuWithChildren[];
+};
+
 export type Money = {
   amount: string;
   currencyCode: string;
